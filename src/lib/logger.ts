@@ -5,11 +5,8 @@ import type { LogEvent } from './types'
 const isDev = process.env.NODE_ENV === 'development'
 
 export const logger = pino({
-  level: process.env.LOG_LEVEL ?? 'info',
+  level: (process.env.LOG_LEVEL ?? 'info').trim(),
   base: { service: 'certify' },
-  formatters: {
-    level: (label) => ({ level: label }),
-  },
   ...(isDev
     ? {
         transport: {
