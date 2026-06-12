@@ -10,9 +10,9 @@ Extends global CLAUDE.md. Global Autonomous Execution Contract applies in full.
 |-------|--------|------|
 | P0 — Parse pipeline | ✅ done | `pnpm parse-exams` exits 0, ≥1142 questions |
 | P1 — Quiz UI | ✅ done | `pnpm build` exits 0, all routes render |
-| P2 — Test infrastructure | 🔲 next | `pnpm test` runs Vitest; `pnpm test:e2e` runs Playwright |
-| P3 — Leaderboard | 🔲 blocked on Supabase creds | unit tests pass with mocks |
-| P4 — Stripe paywall | 🔲 blocked on Stripe creds | unit tests pass with mocks |
+| P2 — Test infrastructure | ✅ done | `pnpm test` runs 98 Vitest tests; `pnpm test:e2e` runs Playwright |
+| P3 — Leaderboard | ✅ done | unit tests pass with mocks; blocked on Supabase + OAuth creds |
+| P4 — Stripe paywall | ✅ done | unit tests pass with mocks; blocked on Stripe + Supabase creds |
 
 ## Milestone gates (must pass before commit)
 
