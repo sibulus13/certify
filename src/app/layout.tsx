@@ -1,0 +1,76 @@
+import type { Metadata, Viewport } from 'next'
+import { Geist } from 'next/font/google'
+import './globals.css'
+
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
+
+export const viewport: Viewport = {
+  themeColor: '#0f172a',
+}
+
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://certify.app'),
+  title: {
+    default: 'Certify — AWS Cloud Practitioner Practice Exams',
+    template: '%s | Certify',
+  },
+  description:
+    '23 full-length AWS Certified Cloud Practitioner (CLF-C02) practice exams with 1,500+ questions. ' +
+    'Track your progress, compete on the leaderboard, and study smarter.',
+  keywords: [
+    'AWS Cloud Practitioner',
+    'CLF-C02',
+    'AWS certification',
+    'practice exam',
+    'quiz',
+    'study guide',
+  ],
+  authors: [{ name: 'Certify' }],
+  openGraph: {
+    type: 'website',
+    siteName: 'Certify',
+    title: 'Certify — AWS Cloud Practitioner Practice Exams',
+    description: '23 practice exams, 1,500+ questions. Free to start.',
+  },
+  twitter: { card: 'summary' },
+  robots: { index: true, follow: true },
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className={`${geist.variable} h-full`}>
+      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 antialiased">
+        <header className="border-b border-slate-800 px-6 py-4">
+          <div className="mx-auto max-w-5xl flex items-center justify-between">
+            <a href="/" className="text-lg font-semibold tracking-tight text-white hover:text-sky-400 transition-colors">
+              certify
+            </a>
+            <nav className="flex items-center gap-6 text-sm text-slate-400">
+              <a href="/" className="hover:text-white transition-colors">Exams</a>
+            </nav>
+          </div>
+        </header>
+
+        <main className="flex-1">{children}</main>
+
+        <footer className="border-t border-slate-800 px-6 py-8 mt-16">
+          <div className="mx-auto max-w-5xl space-y-2 text-sm text-slate-500">
+            <p>
+              Question bank sourced from{' '}
+              <a
+                href="https://github.com/kananinirav/AWS-Certified-Cloud-Practitioner-Notes"
+                className="text-slate-400 hover:text-white underline transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                kananinirav/AWS-Certified-Cloud-Practitioner-Notes
+              </a>{' '}
+              (MIT License).
+            </p>
+            <p>Not affiliated with or endorsed by Amazon Web Services.</p>
+          </div>
+        </footer>
+      </body>
+    </html>
+  )
+}
