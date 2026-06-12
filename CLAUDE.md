@@ -11,26 +11,31 @@ Extends global CLAUDE.md. Global Autonomous Execution Contract applies in full.
 | P0 — Parse pipeline | ✅ done | `pnpm parse-exams` exits 0, ≥1142 questions |
 | P1 — Quiz UI | ✅ done | `pnpm build` exits 0, all routes render |
 | P2 — Test infrastructure | ✅ done | `pnpm test` runs 98 Vitest tests; `pnpm test:e2e` runs Playwright |
-| P3 — Leaderboard | ✅ done | unit tests pass with mocks; blocked on Supabase + OAuth creds |
-| P4 — Stripe paywall | ✅ done | unit tests pass with mocks; blocked on Stripe + Supabase creds |
+| P3 — Leaderboard | ✅ done | unit tests pass with mocks; Supabase project provisioned |
+| P4 — Stripe paywall | ✅ done | unit tests pass with mocks; Stripe creds still manual |
+| P5 — Production deploy | ✅ done | https://certify-swart.vercel.app live; Supabase + env vars set |
+
+## Production URLs
+
+- **App**: https://certify-swart.vercel.app
+- **Supabase project**: wfwzxlrdjnwtvycvuwpg (ca-central-1, org: sib)
+- **Vercel project**: prj_FrEuWb35NJvDY3qyrXoNByaaVFX2 (team: sibulus13s-projects)
 
 ## Milestone gates (must pass before commit)
 
-- **Every commit**: `pnpm build` exits 0
+- **Every commit**: `pnpm build` exits 0 (clean build — delete `.next/` to verify with no cache)
 - **Test commits**: `pnpm test` exits 0 (unit + integration, mocked)
 - **E2E**: documented as requiring real credentials; skipped in CI until env vars present
 
-## External credential blockers
+## Remaining manual steps
 
-These stop end-to-end validation but must NOT stop implementation or unit testing:
-
-| Credential | Where to get it | Needed for |
-|------------|----------------|------------|
-| `AUTH_SECRET` | `npx auth secret` | Auth.js JWT signing |
-| `AUTH_GOOGLE_ID/SECRET` | console.cloud.google.com | Google OAuth |
-| `AUTH_GITHUB_ID/SECRET` | github.com/settings/applications | GitHub OAuth |
-| `NEXT_PUBLIC_SUPABASE_URL` + keys | supabase.com/dashboard | Leaderboard DB |
-| `STRIPE_SECRET_KEY` + webhook | dashboard.stripe.com | Pro paywall |
+| Step | Where | Needed for |
+|------|-------|------------|
+| `AUTH_GOOGLE_ID/SECRET` | console.cloud.google.com | Google OAuth sign-in |
+| `AUTH_GITHUB_ID/SECRET` | github.com/settings/applications | GitHub OAuth sign-in |
+| Stripe products + webhook | dashboard.stripe.com | Live Pro paywall |
+| Update `STRIPE_SECRET_KEY` + `STRIPE_PRICE_*` on Vercel | Vercel dashboard | Replace placeholders |
+| Connect GitHub repo in Vercel | vercel.com/sibulus13s-projects/certify/settings/git | Auto-deploys on push |
 
 ## Test priorities (high-risk → regression)
 
