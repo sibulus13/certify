@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
+import { Suspense } from 'react'
+import { AuthButton } from '@/components/AuthButton'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
@@ -45,8 +47,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <a href="/" className="text-lg font-semibold tracking-tight text-white hover:text-sky-400 transition-colors">
               certify
             </a>
-            <nav className="flex items-center gap-6 text-sm text-slate-400">
+            <nav className="flex items-center gap-4 sm:gap-6 text-sm text-slate-400">
               <a href="/" className="hover:text-white transition-colors">Exams</a>
+              <a href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</a>
+              <Suspense fallback={<div className="w-16 h-7 rounded-lg bg-slate-800 animate-pulse" />}>
+                <AuthButton />
+              </Suspense>
             </nav>
           </div>
         </header>

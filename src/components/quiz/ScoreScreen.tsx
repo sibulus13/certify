@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import type { Exam, Question, QuizSession } from '@/lib/types'
 
 type Props = {
@@ -17,6 +18,46 @@ export function ScoreScreen({ exam, questions, session, onRetry }: Props) {
   const pct = Math.round((correct / total) * 100)
   const totalTime = answers.reduce((s, a) => s + a.timeSpentSeconds, 0)
   const passed = pct >= 70  // AWS passing threshold is ~70%
+  const [rank, setRank] = useState<number | null>(null)
+
+  useEffect(() => {
+    // Post anonymous question stats (always, no auth required)
+    const events = questions.flatMap((q) => {
+      const ans = session.answers[q.id]
+      if (!ans) return []
+      return ans.selectedOptions.map((optId) => ({
+        questionId: q.id,
+        examId: q.examId,
+        selectedOptions: [optId],
+        isCorrect: ans.isCorrect,
+      }))
+    })
+    if (events.length > 0) {
+      fetch('/api/question-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events }),
+      }).catch(() => {})
+    }
+
+    // Attempt to save session to leaderboard (requires auth — 401 is silently ignored)
+    fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        examId: exam.id,
+        score: correct,
+        questionCount: total,
+        timeSeconds: totalTime,
+        answers: session.answers,
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { rank?: number } | null) => {
+        if (data?.rank) setRank(data.rank)
+      })
+      .catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function fmt(sec: number): string {
     const m = Math.floor(sec / 60)
@@ -39,6 +80,22 @@ export function ScoreScreen({ exam, questions, session, onRetry }: Props) {
           {passed ? '✓ Passing score' : `Need ${70 - pct}% more to reach 70% pass threshold`}
         </p>
         <p className="text-xs text-slate-600 mt-1">Time: {fmt(totalTime)}</p>
+        {rank !== null && (
+          <p className="text-xs text-sky-400 mt-1">
+            Leaderboard rank: #{rank} —{' '}
+            <a href={`/leaderboard?exam=${exam.id}`} className="underline hover:text-sky-300">
+              View leaderboard
+            </a>
+          </p>
+        )}
+        {rank === null && (
+          <p className="text-xs text-slate-600 mt-1">
+            <a href="/auth/signin" className="underline hover:text-slate-400">
+              Sign in
+            </a>
+            {' '}to save your score to the leaderboard.
+          </p>
+        )}
 
         <div className="mt-6 flex justify-center gap-3">
           <button
