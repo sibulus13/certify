@@ -10,6 +10,7 @@ import {
   clearSession,
   getAnsweredCount,
 } from '@/lib/session'
+import { isAnswerCorrect } from '@/lib/scoring'
 import { QuestionCard } from './QuestionCard'
 import { ScoreScreen } from './ScoreScreen'
 
@@ -78,9 +79,7 @@ export function QuizEngine({ exam, questions }: Props) {
     setState((prev) => {
       if (prev.phase !== 'quiz' || prev.selected.length === 0) return prev
       const q = questions[prev.currentIndex]
-      const isCorrect =
-        prev.selected.length === q.correctAnswers.length &&
-        prev.selected.every((s) => q.correctAnswers.includes(s))
+      const isCorrect = isAnswerCorrect(prev.selected, q.correctAnswers)
 
       const timeSpentSeconds = Math.round((Date.now() - questionStartTime.current) / 1000)
 

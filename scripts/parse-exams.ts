@@ -40,7 +40,7 @@ const OUTPUT_PATH = join(ROOT, 'public', 'data', 'questions.json')
 const FREE_EXAM_COUNT = 5
 const MIN_QUESTIONS_PER_EXAM = 40  // exam-12 has 42 in source data
 
-function parseQuestionBlock(block: string, examNumber: number): Question | null {
+function parseQuestionBlock(block: string, examNumber: number, sequentialIndex: number): Question | null {
   const lines = block.split('\n')
   let questionIndex = 0
   const textLines: string[] = []
@@ -112,7 +112,7 @@ function parseQuestionBlock(block: string, examNumber: number): Question | null 
   const urlM = detailsContent.match(/https?:\/\/[^\s<>"')\]]+/)
 
   return {
-    id: `exam-${examNumber}-q-${questionIndex}`,
+    id: `exam-${examNumber}-q-${sequentialIndex}`,
     examId: `practice-exam-${examNumber}`,
     examNumber,
     index: questionIndex,
@@ -140,8 +140,9 @@ function parseExamFile(filename: string, examNumber: number): { exam: Exam; ques
   const questions: Question[] = []
   const parseErrors: string[] = []
 
-  for (const block of blocks) {
-    const q = parseQuestionBlock(block, examNumber)
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]
+    const q = parseQuestionBlock(block, examNumber, i + 1)
     if (q) {
       questions.push(q)
     } else {
