@@ -27,6 +27,7 @@ import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import GitHub from 'next-auth/providers/github'
 import type { NextAuthConfig } from 'next-auth'
+import { isAdminEmail } from '@/lib/admin'
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -45,32 +46,47 @@ export const authConfig: NextAuthConfig = {
     error: '/auth/error',
   },
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, trigger, session: updatePayload }) {
       if (user?.id) token.sub = user.id
+      // Stamp isAdmin once at sign-in; stored in JWT so it's available client-side.
+      if (user?.email) token.isAdmin = isAdminEmail(user.email)
 
-      // Refresh Pro status when session.update() is called (e.g., from /upgrade/success).
-      // Only queries Supabase on explicit update, not on every request decode.
-      if (trigger === 'update' && token.sub && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        try {
-          const { createServerClient } = await import('@/lib/supabase-server')
-          const supabase = createServerClient()
-          const { data } = await supabase
-            .from('user_subscriptions')
-            .select('status')
-            .eq('user_id', token.sub)
-            .single()
-          token.isPro = data?.status === 'pro'
-        } catch {
-          // Keep existing isPro value if DB unavailable
+      if (trigger === 'update') {
+        // Admin pro override — bypasses Supabase, flips isPro directly in the JWT.
+        if (
+          token.isAdmin &&
+          updatePayload !== null &&
+          typeof updatePayload === 'object' &&
+          'forceIsPro' in updatePayload &&
+          typeof (updatePayload as Record<string, unknown>).forceIsPro === 'boolean'
+        ) {
+          token.isPro = (updatePayload as Record<string, unknown>).forceIsPro as boolean
+          return token
+        }
+
+        // Normal refresh — re-read Pro status from Supabase (e.g., after Stripe checkout).
+        if (token.sub && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+          try {
+            const { createServerClient } = await import('@/lib/supabase-server')
+            const supabase = createServerClient()
+            const { data } = await supabase
+              .from('user_subscriptions')
+              .select('status')
+              .eq('user_id', token.sub)
+              .single()
+            token.isPro = data?.status === 'pro'
+          } catch {
+            // Keep existing isPro value if DB unavailable
+          }
         }
       }
 
       return token
     },
     session({ session, token }) {
-      // Expose the stable user ID and Pro status to server components via `auth()`.
       if (token.sub) session.user.id = token.sub
       if (token.isPro !== undefined) session.user.isPro = token.isPro as boolean
+      if (token.isAdmin !== undefined) session.user.isAdmin = token.isAdmin as boolean
       return session
     },
   },
