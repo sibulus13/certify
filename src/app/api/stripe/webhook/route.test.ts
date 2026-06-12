@@ -84,7 +84,7 @@ describe('POST /api/stripe/webhook', () => {
         },
       },
     }
-    mockConstructEvent.mockReturnValue(event as ReturnType<typeof stripe.webhooks.constructEvent>)
+    mockConstructEvent.mockReturnValue(event as unknown)
 
     const res = await POST(makeRequest(JSON.stringify(event)))
     expect(res.status).toBe(200)
@@ -105,7 +105,7 @@ describe('POST /api/stripe/webhook', () => {
         object: { customer: 'cus_test123' },
       },
     }
-    mockConstructEvent.mockReturnValue(event as ReturnType<typeof stripe.webhooks.constructEvent>)
+    mockConstructEvent.mockReturnValue(event as unknown)
 
     const res = await POST(makeRequest(JSON.stringify(event)))
     expect(res.status).toBe(200)
@@ -114,7 +114,7 @@ describe('POST /api/stripe/webhook', () => {
 
   it('returns 200 no-op for unknown event types', async () => {
     const event = { type: 'payment_intent.created', data: { object: {} } }
-    mockConstructEvent.mockReturnValue(event as ReturnType<typeof stripe.webhooks.constructEvent>)
+    mockConstructEvent.mockReturnValue(event as unknown)
     mockCreateServerClient.mockReturnValue(makeSupabaseMock())
 
     const res = await POST(makeRequest(JSON.stringify(event)))
