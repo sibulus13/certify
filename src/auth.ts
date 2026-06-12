@@ -45,10 +45,26 @@ export const authConfig: NextAuthConfig = {
     error: '/auth/error',
   },
   callbacks: {
-    jwt({ token, user }) {
-      // Persist the user ID from OAuth into the JWT on first sign-in.
-      // Add `token.isPro = true/false` here when Stage 3 Stripe check is wired up.
+    async jwt({ token, user, trigger }) {
       if (user?.id) token.sub = user.id
+
+      // Refresh Pro status when session.update() is called (e.g., from /upgrade/success).
+      // Only queries Supabase on explicit update, not on every request decode.
+      if (trigger === 'update' && token.sub && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        try {
+          const { createServerClient } = await import('@/lib/supabase-server')
+          const supabase = createServerClient()
+          const { data } = await supabase
+            .from('user_subscriptions')
+            .select('status')
+            .eq('user_id', token.sub)
+            .single()
+          token.isPro = data?.status === 'pro'
+        } catch {
+          // Keep existing isPro value if DB unavailable
+        }
+      }
+
       return token
     },
     session({ session, token }) {

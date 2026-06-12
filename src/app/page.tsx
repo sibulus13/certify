@@ -104,21 +104,32 @@ export default function HomePage() {
               <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">
                 Pro — All {exams.length} exams
               </h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 opacity-60">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {proExams.map((exam) => (
-                  <div
+                  <Link
                     key={exam.id}
-                    className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-5 py-4 cursor-not-allowed"
+                    href="/upgrade"
+                    className="group flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-5 py-4 opacity-70 hover:opacity-100 hover:border-amber-500/40 transition-all"
                   >
                     <div>
-                      <p className="font-medium text-slate-300">{exam.title}</p>
+                      <p className="font-medium text-slate-300 group-hover:text-white transition-colors">
+                        {exam.title}
+                      </p>
                       <p className="text-sm text-slate-600 mt-0.5">{exam.questionCount} questions</p>
                     </div>
                     <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400 ring-1 ring-amber-500/20">
-                      Pro
+                      Unlock
                     </span>
-                  </div>
+                  </Link>
                 ))}
+              </div>
+              <div className="mt-4 text-center">
+                <Link
+                  href="/upgrade"
+                  className="inline-flex items-center gap-2 rounded-lg bg-amber-500/10 px-5 py-2 text-sm text-amber-400 ring-1 ring-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                >
+                  Unlock all exams with Pro →
+                </Link>
               </div>
             </>
           )}
