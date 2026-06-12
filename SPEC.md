@@ -145,15 +145,25 @@ Gate enforcement: server-side middleware checks `user_subscriptions` table. Not 
 
 ## Attribution Requirements
 
-Per MIT license terms, **all pages** must include the following attribution in the footer:
+MIT license requires the copyright notice be "included in all copies or substantial portions
+of the Software." For a web app, a linked legal page satisfies this obligation.
 
-> Question bank sourced from
-> [kananinirav/AWS-Certified-Cloud-Practitioner-Notes](https://github.com/kananinirav/AWS-Certified-Cloud-Practitioner-Notes)
-> (MIT License) — not affiliated with or endorsed by Amazon Web Services.
+**Implementation** (current):
+- Footer on every page contains a "Licenses & Attribution" link → `/legal/attribution`
+- `/legal/attribution` displays the full MIT copyright notice, AWS trademark disclaimer,
+  and a dependency table
+- No attribution text is required inline on the paywall or any content page
 
-The Pro paywall landing page must additionally display:
-> "All practice questions are sourced from the open-source repository above.
-> Your subscription funds the platform, not the questions."
+**What is NOT required** by MIT (confirmed):
+- Displaying attribution on the paywall landing page
+- Displaying attribution on every quiz question
+- Crediting the source in the app UI beyond an accessible link
+
+**`/legal/attribution` must contain**:
+- Full MIT copyright notice (copyright year + author name)
+- Link to source repository
+- Statement that the subscription covers platform UX, not question content
+- AWS trademark disclaimer
 
 ---
 
