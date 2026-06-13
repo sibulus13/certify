@@ -8,7 +8,7 @@
  *   4. In src/proxy.ts: `export { proxy, config } from '@/lib/auth-middleware'`
  *
  * Session strategy: JWT (no DB adapter — user identity lives in a signed cookie).
- * Application data (leaderboard scores, subscriptions) is stored separately in Supabase
+ * Application data (leaderboard scores, subscriptions) is stored separately in Postgres
  * referenced by user.id from the JWT.
  *
  * Required env vars:
@@ -27,18 +27,34 @@ import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import GitHub from 'next-auth/providers/github'
 import type { NextAuthConfig } from 'next-auth'
+import { eq } from 'drizzle-orm'
 import { isAdminEmail } from '@/lib/admin'
+import { createDb } from '@/lib/db'
+import { userSubscriptions } from '@/lib/db/schema'
+
+export const availableAuthProviders = {
+  google: Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET),
+  github: Boolean(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET),
+}
 
 export const authConfig: NextAuthConfig = {
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-    }),
-    GitHub({
-      clientId: process.env.AUTH_GITHUB_ID,
-      clientSecret: process.env.AUTH_GITHUB_SECRET,
-    }),
+    ...(availableAuthProviders.google
+      ? [
+          Google({
+            clientId: process.env.AUTH_GOOGLE_ID,
+            clientSecret: process.env.AUTH_GOOGLE_SECRET,
+          }),
+        ]
+      : []),
+    ...(availableAuthProviders.github
+      ? [
+          GitHub({
+            clientId: process.env.AUTH_GITHUB_ID,
+            clientSecret: process.env.AUTH_GITHUB_SECRET,
+          }),
+        ]
+      : []),
   ],
   session: { strategy: 'jwt' },
   pages: {
@@ -64,17 +80,15 @@ export const authConfig: NextAuthConfig = {
           return token
         }
 
-        // Normal refresh — re-read Pro status from Supabase (e.g., after Stripe checkout).
-        if (token.sub && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        // Normal refresh — re-read Pro status from Postgres (e.g., after Stripe checkout).
+        if (token.sub && process.env.DATABASE_URL) {
           try {
-            const { createServerClient } = await import('@/lib/supabase-server')
-            const supabase = createServerClient()
-            const { data } = await supabase
-              .from('user_subscriptions')
-              .select('status')
-              .eq('user_id', token.sub)
-              .single()
-            token.isPro = data?.status === 'pro'
+            const [subscription] = await createDb()
+              .select({ status: userSubscriptions.status })
+              .from(userSubscriptions)
+              .where(eq(userSubscriptions.userId, token.sub))
+              .limit(1)
+            token.isPro = subscription?.status === 'pro'
           } catch {
             // Keep existing isPro value if DB unavailable
           }

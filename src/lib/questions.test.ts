@@ -19,7 +19,6 @@ describe('questions.json data integrity', () => {
     data = loadQuestionsData()
   } catch {
     it.skip('questions.json not found — run pnpm parse-exams first', () => {})
-    // eslint-disable-next-line no-useless-return
     return
   }
 

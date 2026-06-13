@@ -8,15 +8,15 @@ vi.mock('@/lib/stripe', () => ({
   })),
 }))
 
-vi.mock('@/lib/supabase-server', () => ({
-  createServerClient: vi.fn(),
+vi.mock('@/lib/db', () => ({
+  createDb: vi.fn(),
 }))
 
 import { POST } from './route'
-import { createServerClient } from '@/lib/supabase-server'
+import { createDb } from '@/lib/db'
 import { NextRequest } from 'next/server'
 
-const mockCreateServerClient = vi.mocked(createServerClient)
+const mockCreateDb = vi.mocked(createDb)
 
 function makeRequest(body: string, sig = 'valid-sig') {
   return new NextRequest('http://localhost/api/stripe/webhook', {
@@ -29,15 +29,22 @@ function makeRequest(body: string, sig = 'valid-sig') {
   })
 }
 
-function makeSupabaseMock() {
-  const upsertMock = vi.fn().mockResolvedValue({ error: null })
-  const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+function makeDbMock() {
+  const onConflictDoUpdate = vi.fn().mockResolvedValue([])
+  const where = vi.fn().mockResolvedValue([])
   return {
-    from: vi.fn().mockReturnValue({
-      upsert: upsertMock,
-      update: updateMock,
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({ onConflictDoUpdate }),
     }),
-  } as unknown as ReturnType<typeof createServerClient>
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({ where }),
+    }),
+    onConflictDoUpdate,
+    where,
+  } as unknown as ReturnType<typeof createDb> & {
+    onConflictDoUpdate: typeof onConflictDoUpdate
+    where: typeof where
+  }
 }
 
 describe('POST /api/stripe/webhook', () => {
@@ -70,8 +77,8 @@ describe('POST /api/stripe/webhook', () => {
   })
 
   it('handles checkout.session.completed — upserts user_subscriptions', async () => {
-    const supabaseMock = makeSupabaseMock()
-    mockCreateServerClient.mockReturnValue(supabaseMock)
+    const dbMock = makeDbMock()
+    mockCreateDb.mockReturnValue(dbMock)
 
     const event = {
       type: 'checkout.session.completed',
@@ -91,13 +98,13 @@ describe('POST /api/stripe/webhook', () => {
     const body = await res.json()
     expect(body.received).toBe(true)
 
-    // Verify upsert was called on the right table
-    expect(supabaseMock.from).toHaveBeenCalledWith('user_subscriptions')
+    expect(dbMock.insert).toHaveBeenCalled()
+    expect(dbMock.onConflictDoUpdate).toHaveBeenCalled()
   })
 
   it('handles customer.subscription.deleted — sets status to cancelled', async () => {
-    const supabaseMock = makeSupabaseMock()
-    mockCreateServerClient.mockReturnValue(supabaseMock)
+    const dbMock = makeDbMock()
+    mockCreateDb.mockReturnValue(dbMock)
 
     const event = {
       type: 'customer.subscription.deleted',
@@ -109,13 +116,14 @@ describe('POST /api/stripe/webhook', () => {
 
     const res = await POST(makeRequest(JSON.stringify(event)))
     expect(res.status).toBe(200)
-    expect(supabaseMock.from).toHaveBeenCalledWith('user_subscriptions')
+    expect(dbMock.update).toHaveBeenCalled()
+    expect(dbMock.where).toHaveBeenCalled()
   })
 
   it('returns 200 no-op for unknown event types', async () => {
     const event = { type: 'payment_intent.created', data: { object: {} } }
     mockConstructEvent.mockReturnValue(event as unknown)
-    mockCreateServerClient.mockReturnValue(makeSupabaseMock())
+    mockCreateDb.mockReturnValue(makeDbMock())
 
     const res = await POST(makeRequest(JSON.stringify(event)))
     expect(res.status).toBe(200)

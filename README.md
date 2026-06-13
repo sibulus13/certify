@@ -1,5 +1,9 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Certify
+
+Certify is an AWS Cloud Practitioner quiz platform. The current free-tier architecture decision is documented in [docs/FREE_TIER_ARCHITECTURE_AUDIT.md](docs/FREE_TIER_ARCHITECTURE_AUDIT.md): Vercel for hosting, Auth.js for OAuth, and Neon Postgres as the preferred scoped database target.
+
 ## Getting Started
 
 First, run the development server:

@@ -1,15 +1,15 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/supabase-server', () => ({
-  createServerClient: vi.fn(),
+vi.mock('@/lib/db', () => ({
+  createDb: vi.fn(),
 }))
 
 import { POST } from './route'
-import { createServerClient } from '@/lib/supabase-server'
+import { createDb } from '@/lib/db'
 import { NextRequest } from 'next/server'
 
-const mockCreateServerClient = vi.mocked(createServerClient)
+const mockCreateDb = vi.mocked(createDb)
 
 const VALID_EVENTS = [
   { questionId: 'exam-1-q-1', examId: 'practice-exam-1', selectedOptions: ['A' as const], isCorrect: true },
@@ -22,9 +22,9 @@ describe('POST /api/question-stats', () => {
   })
 
   it('returns 202 with accepted count on success', async () => {
-    mockCreateServerClient.mockReturnValue({
-      rpc: vi.fn().mockResolvedValue({ error: null }),
-    } as unknown as ReturnType<typeof createServerClient>)
+    mockCreateDb.mockReturnValue({
+      execute: vi.fn().mockResolvedValue([]),
+    } as unknown as ReturnType<typeof createDb>)
 
     const req = new NextRequest('http://localhost/api/question-stats', {
       method: 'POST',
@@ -75,10 +75,10 @@ describe('POST /api/question-stats', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 500 on Supabase RPC error', async () => {
-    mockCreateServerClient.mockReturnValue({
-      rpc: vi.fn().mockResolvedValue({ error: { message: 'function does not exist' } }),
-    } as unknown as ReturnType<typeof createServerClient>)
+  it('returns 500 on database error', async () => {
+    mockCreateDb.mockReturnValue({
+      execute: vi.fn().mockRejectedValue(new Error('function does not exist')),
+    } as unknown as ReturnType<typeof createDb>)
 
     const req = new NextRequest('http://localhost/api/question-stats', {
       method: 'POST',
@@ -91,9 +91,9 @@ describe('POST /api/question-stats', () => {
   })
 
   it('does not require authentication', async () => {
-    mockCreateServerClient.mockReturnValue({
-      rpc: vi.fn().mockResolvedValue({ error: null }),
-    } as unknown as ReturnType<typeof createServerClient>)
+    mockCreateDb.mockReturnValue({
+      execute: vi.fn().mockResolvedValue([]),
+    } as unknown as ReturnType<typeof createDb>)
 
     const req = new NextRequest('http://localhost/api/question-stats', {
       method: 'POST',

@@ -1,21 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { getSession, getAnsweredCount } from '@/lib/session'
 
 type Props = { examId: string; questionCount: number; isFree: boolean }
 
 export function ExamStartButton({ examId, questionCount, isFree }: Props) {
-  const [resumeInfo, setResumeInfo] = useState<{ answered: number } | null>(null)
-
-  useEffect(() => {
+  const [resumeInfo] = useState<{ answered: number } | null>(() => {
     const session = getSession(examId)
     if (session && !session.completedAt) {
       const answered = getAnsweredCount(session)
-      if (answered > 0) setResumeInfo({ answered })
+      if (answered > 0) return { answered }
     }
-  }, [examId])
+    return null
+  })
 
   if (!isFree) {
     return (

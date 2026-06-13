@@ -1,20 +1,34 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/supabase-server', () => ({
-  createServerClient: vi.fn(),
+vi.mock('@/lib/db', () => ({
+  createDb: vi.fn(),
 }))
 
 import { GET } from './route'
-import { createServerClient } from '@/lib/supabase-server'
+import { createDb } from '@/lib/db'
 import { NextRequest } from 'next/server'
 
-const mockCreateServerClient = vi.mocked(createServerClient)
+const mockCreateDb = vi.mocked(createDb)
 
 const MOCK_SESSIONS = [
-  { id: 'a', user_id: 'u1', score: 48, question_count: 50, time_seconds: 900, completed_at: '2025-01-02T00:00:00Z' },
-  { id: 'b', user_id: 'u2', score: 45, question_count: 50, time_seconds: 1200, completed_at: '2025-01-01T00:00:00Z' },
+  { id: 'a', userId: 'u1', score: 48, questionCount: 50, timeSeconds: 900, completedAt: new Date('2025-01-02T00:00:00Z') },
+  { id: 'b', userId: 'u2', score: 45, questionCount: 50, timeSeconds: 1200, completedAt: new Date('2025-01-01T00:00:00Z') },
 ]
+
+function mockLeaderboard(data: unknown[] | Promise<unknown[]>) {
+  mockCreateDb.mockReturnValue({
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue(data),
+          }),
+        }),
+      }),
+    }),
+  } as unknown as ReturnType<typeof createDb>)
+}
 
 describe('GET /api/leaderboard/[examId]', () => {
   beforeEach(() => {
@@ -22,19 +36,7 @@ describe('GET /api/leaderboard/[examId]', () => {
   })
 
   it('returns array with rank field', async () => {
-    mockCreateServerClient.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue({ data: MOCK_SESSIONS, error: null }),
-              }),
-            }),
-          }),
-        }),
-      }),
-    } as unknown as ReturnType<typeof createServerClient>)
+    mockLeaderboard(MOCK_SESSIONS)
 
     const req = new NextRequest('http://localhost/api/leaderboard/practice-exam-1')
     const res = await GET(req, { params: Promise.resolve({ examId: 'practice-exam-1' }) })
@@ -48,19 +50,7 @@ describe('GET /api/leaderboard/[examId]', () => {
   })
 
   it('returns empty array when no scores', async () => {
-    mockCreateServerClient.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue({ data: [], error: null }),
-              }),
-            }),
-          }),
-        }),
-      }),
-    } as unknown as ReturnType<typeof createServerClient>)
+    mockLeaderboard([])
 
     const req = new NextRequest('http://localhost/api/leaderboard/practice-exam-99')
     const res = await GET(req, { params: Promise.resolve({ examId: 'practice-exam-99' }) })
@@ -71,19 +61,17 @@ describe('GET /api/leaderboard/[examId]', () => {
   })
 
   it('returns 500 on database error', async () => {
-    mockCreateServerClient.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'connection error' } }),
-              }),
+    mockCreateDb.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockRejectedValue(new Error('connection error')),
             }),
           }),
         }),
       }),
-    } as unknown as ReturnType<typeof createServerClient>)
+    } as unknown as ReturnType<typeof createDb>)
 
     const req = new NextRequest('http://localhost/api/leaderboard/practice-exam-1')
     const res = await GET(req, { params: Promise.resolve({ examId: 'practice-exam-1' }) })

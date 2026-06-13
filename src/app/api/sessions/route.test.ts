@@ -5,17 +5,17 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase-server', () => ({
-  createServerClient: vi.fn(),
+vi.mock('@/lib/db', () => ({
+  createDb: vi.fn(),
 }))
 
 import { POST, GET } from './route'
 import { auth } from '@/auth'
-import { createServerClient } from '@/lib/supabase-server'
+import { createDb } from '@/lib/db'
 import { NextRequest } from 'next/server'
 
 const mockAuth = vi.mocked(auth)
-const mockCreateServerClient = vi.mocked(createServerClient)
+const mockCreateDb = vi.mocked(createDb)
 
 const VALID_BODY = {
   examId: 'practice-exam-1',
@@ -25,42 +25,33 @@ const VALID_BODY = {
   answers: {},
 }
 
-function makeSupabaseMock(overrides?: {
-  insertData?: unknown
-  insertError?: unknown
-  countValue?: number
-}) {
-  const selectMock = vi.fn().mockReturnValue({
-    eq: vi.fn().mockReturnValue({
-      order: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
-      }),
-    }),
-  })
-
-  const insertSingleMock = vi.fn().mockResolvedValue({
-    data: overrides?.insertData ?? { id: 'session-uuid-1' },
-    error: overrides?.insertError ?? null,
-  })
-
-  const countMock = vi.fn().mockResolvedValue({
-    count: overrides?.countValue ?? 3,
-    error: null,
-  })
-
+function makePostDbMock(overrides?: { insertId?: string; countValue?: number }) {
   return {
-    from: vi.fn().mockReturnValue({
-      insert: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({ single: insertSingleMock }),
-      }),
-      select: vi.fn((_, opts?: { count?: string; head?: boolean }) => {
-        if (opts?.count === 'exact') {
-          return { eq: vi.fn().mockReturnValue({ or: vi.fn().mockReturnValue(countMock()) }) }
-        }
-        return selectMock()
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: overrides?.insertId ?? 'session-uuid-1' }]),
       }),
     }),
-  } as unknown as ReturnType<typeof createServerClient>
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ value: overrides?.countValue ?? 3 }]),
+      }),
+    }),
+  } as unknown as ReturnType<typeof createDb>
+}
+
+function makeGetDbMock(data: unknown[]) {
+  return {
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue(data),
+          }),
+        }),
+      }),
+    }),
+  } as unknown as ReturnType<typeof createDb>
 }
 
 describe('POST /api/sessions', () => {
@@ -101,8 +92,7 @@ describe('POST /api/sessions', () => {
   it('returns 201 with id and rank on success', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1', name: 'Test', email: 'test@test.com' } } as ReturnType<typeof auth> extends Promise<infer T> ? T : never)
 
-    const supabaseMock = makeSupabaseMock({ insertData: { id: 'session-uuid-1' }, countValue: 4 })
-    mockCreateServerClient.mockReturnValue(supabaseMock)
+    mockCreateDb.mockReturnValue(makePostDbMock({ insertId: 'session-uuid-1', countValue: 4 }))
 
     const req = new NextRequest('http://localhost/api/sessions', {
       method: 'POST',
@@ -135,20 +125,10 @@ describe('GET /api/sessions', () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1', name: 'Test', email: 'test@test.com' } } as ReturnType<typeof auth> extends Promise<infer T> ? T : never)
 
     const mockData = [
-      { id: 'sess-1', exam_id: 'practice-exam-1', score: 40, question_count: 50, time_seconds: 1800, completed_at: '2025-01-01T00:00:00Z' },
+      { id: 'sess-1', examId: 'practice-exam-1', score: 40, questionCount: 50, timeSeconds: 1800, completedAt: new Date('2025-01-01T00:00:00Z') },
     ]
 
-    mockCreateServerClient.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-            }),
-          }),
-        }),
-      }),
-    } as unknown as ReturnType<typeof createServerClient>)
+    mockCreateDb.mockReturnValue(makeGetDbMock(mockData))
 
     const req = new NextRequest('http://localhost/api/sessions')
     const res = await GET(req)

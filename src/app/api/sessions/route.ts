@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { and, count, desc, eq, gt, lt, or } from 'drizzle-orm'
 import { auth } from '@/auth'
-import { createServerClient } from '@/lib/supabase-server'
+import { createDb } from '@/lib/db'
+import { quizSessions } from '@/lib/db/schema'
 import type { Json } from '@/types/database'
 
 const SessionBody = z.object({
@@ -34,39 +36,44 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const { examId, score, questionCount, timeSeconds, answers } = parsed.data
-  const supabase = createServerClient()
+  const db = createDb()
 
-  const { data: inserted, error } = await supabase
-    .from('quiz_sessions')
-    .insert({
-      user_id: session.user.id,
-      exam_id: examId,
-      score,
-      question_count: questionCount,
-      time_seconds: timeSeconds,
-      answers: answers as Json,
-    })
-    .select('id')
-    .single()
+  try {
+    const [inserted] = await db
+      .insert(quizSessions)
+      .values({
+        userId: session.user.id,
+        examId,
+        score,
+        questionCount,
+        timeSeconds,
+        answers: answers as Json,
+      })
+      .returning({ id: quizSessions.id })
 
-  if (error) {
+    const [rankRow] = await db
+      .select({ value: count() })
+      .from(quizSessions)
+      .where(
+        and(
+          eq(quizSessions.examId, examId),
+          or(
+            gt(quizSessions.score, score),
+            and(eq(quizSessions.score, score), lt(quizSessions.timeSeconds, timeSeconds))
+          )
+        )
+      )
+
+    return NextResponse.json(
+      { id: inserted.id, rank: (rankRow?.value ?? 0) + 1 },
+      { status: 201, headers: { 'x-trace-id': traceId } }
+    )
+  } catch {
     return NextResponse.json(
       { error: 'Failed to save session', code: 'DB_ERROR' },
       { status: 500, headers: { 'x-trace-id': traceId } }
     )
   }
-
-  // Compute rank: count sessions with higher score, or equal score and lower time
-  const { count: rank } = await supabase
-    .from('quiz_sessions')
-    .select('id', { count: 'exact', head: true })
-    .eq('exam_id', examId)
-    .or(`score.gt.${score},and(score.eq.${score},time_seconds.lt.${timeSeconds})`)
-
-  return NextResponse.json(
-    { id: inserted.id, rank: (rank ?? 0) + 1 },
-    { status: 201, headers: { 'x-trace-id': traceId } }
-  )
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -80,21 +87,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const supabase = createServerClient()
+  try {
+    const data = await createDb()
+      .select()
+      .from(quizSessions)
+      .where(eq(quizSessions.userId, session.user.id))
+      .orderBy(desc(quizSessions.completedAt))
+      .limit(50)
 
-  const { data, error } = await supabase
-    .from('quiz_sessions')
-    .select('*')
-    .eq('user_id', session.user.id)
-    .order('completed_at', { ascending: false })
-    .limit(50)
-
-  if (error) {
+    return NextResponse.json(data, { headers: { 'x-trace-id': traceId } })
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch sessions', code: 'DB_ERROR' },
       { status: 500, headers: { 'x-trace-id': traceId } }
     )
   }
-
-  return NextResponse.json(data, { headers: { 'x-trace-id': traceId } })
 }

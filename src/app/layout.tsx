@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
+import Link from 'next/link'
 import { Suspense } from 'react'
 import { AuthButton } from '@/components/AuthButton'
 import { AdminProToggle } from '@/components/AdminProToggle'
@@ -47,12 +48,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
         <header className="border-b border-slate-800 px-6 py-4">
           <div className="mx-auto max-w-5xl flex items-center justify-between">
-            <a href="/" className="text-lg font-semibold tracking-tight text-white hover:text-sky-400 transition-colors">
+            <Link href="/" className="text-lg font-semibold tracking-tight text-white hover:text-sky-400 transition-colors">
               certify
-            </a>
+            </Link>
             <nav className="flex items-center gap-4 sm:gap-6 text-sm text-slate-400">
-              <a href="/" className="hover:text-white transition-colors">Exams</a>
-              <a href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</a>
+              <Link href="/" className="hover:text-white transition-colors">Exams</Link>
+              <Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link>
               <Suspense fallback={<div className="w-16 h-7 rounded-lg bg-slate-800 animate-pulse" />}>
                 <AuthButton />
               </Suspense>

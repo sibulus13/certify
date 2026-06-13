@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
+import { eq } from 'drizzle-orm'
 import { getStripe } from '@/lib/stripe'
-import { createServerClient } from '@/lib/supabase-server'
+import { createDb } from '@/lib/db'
+import { userSubscriptions } from '@/lib/db/schema'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const traceId = request.headers.get('x-trace-id') ?? crypto.randomUUID()
@@ -26,18 +28,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const supabase = createServerClient()
+  const db = createDb()
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     const userId = session.metadata?.userId ?? session.client_reference_id
 
     if (userId) {
-      await supabase.from('user_subscriptions').upsert({
-        user_id: userId,
-        stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
-        stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : null,
+      await db.insert(userSubscriptions).values({
+        userId,
+        stripeCustomerId: typeof session.customer === 'string' ? session.customer : null,
+        stripeSubscriptionId: typeof session.subscription === 'string' ? session.subscription : null,
         status: 'pro',
+      }).onConflictDoUpdate({
+        target: userSubscriptions.userId,
+        set: {
+          stripeCustomerId: typeof session.customer === 'string' ? session.customer : null,
+          stripeSubscriptionId: typeof session.subscription === 'string' ? session.subscription : null,
+          status: 'pro',
+          updatedAt: new Date(),
+        },
       })
     }
   }
@@ -47,10 +57,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const customerId = typeof subscription.customer === 'string' ? subscription.customer : null
 
     if (customerId) {
-      await supabase
-        .from('user_subscriptions')
-        .update({ status: 'cancelled' })
-        .eq('stripe_customer_id', customerId)
+      await db
+        .update(userSubscriptions)
+        .set({ status: 'cancelled', updatedAt: new Date() })
+        .where(eq(userSubscriptions.stripeCustomerId, customerId))
     }
   }
 

@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { asc, desc, eq } from 'drizzle-orm'
+import { createDb } from '@/lib/db'
+import { quizSessions } from '@/lib/db/schema'
 import { getAllExams } from '@/lib/questions'
-import { createServerClient } from '@/lib/supabase-server'
 
 export const metadata: Metadata = {
   title: 'Leaderboard',
@@ -19,24 +21,26 @@ type LeaderboardEntry = {
 
 async function getLeaderboard(examId: string): Promise<LeaderboardEntry[]> {
   try {
-    const supabase = createServerClient()
-    const { data, error } = await supabase
-      .from('quiz_sessions')
-      .select('id, user_id, score, question_count, time_seconds, completed_at')
-      .eq('exam_id', examId)
-      .order('score', { ascending: false })
-      .order('time_seconds', { ascending: true })
+    const data = await createDb()
+      .select({
+        userId: quizSessions.userId,
+        score: quizSessions.score,
+        questionCount: quizSessions.questionCount,
+        timeSeconds: quizSessions.timeSeconds,
+        completedAt: quizSessions.completedAt,
+      })
+      .from(quizSessions)
+      .where(eq(quizSessions.examId, examId))
+      .orderBy(desc(quizSessions.score), asc(quizSessions.timeSeconds))
       .limit(20)
-
-    if (error || !data) return []
 
     return data.map((row, i) => ({
       rank: i + 1,
-      userId: row.user_id,
+      userId: row.userId,
       score: row.score,
-      questionCount: row.question_count,
-      timeSeconds: row.time_seconds,
-      completedAt: row.completed_at,
+      questionCount: row.questionCount,
+      timeSeconds: row.timeSeconds,
+      completedAt: row.completedAt.toISOString(),
     }))
   } catch {
     return []

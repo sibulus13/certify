@@ -22,28 +22,29 @@ type EngineState =
   | { phase: 'quiz'; session: QuizSession; currentIndex: number; selected: OptionId[] }
   | { phase: 'complete'; session: QuizSession }
 
+function getInitialState(examId: string): EngineState {
+  const existing = getSession(examId)
+  if (!existing) {
+    return { phase: 'quiz', session: startSession(examId), currentIndex: 0, selected: [] }
+  }
+  if (existing.completedAt) {
+    return { phase: 'complete', session: existing }
+  }
+  const answeredCount = getAnsweredCount(existing)
+  if (answeredCount === 0) {
+    return { phase: 'quiz', session: existing, currentIndex: 0, selected: [] }
+  }
+  return { phase: 'resume', session: existing }
+}
+
 export function QuizEngine({ exam, questions }: Props) {
-  const [state, setState] = useState<EngineState>({ phase: 'loading' })
-  const questionStartTime = useRef<number>(Date.now())
+  const [state, setState] = useState<EngineState>(() => getInitialState(exam.id))
+  const questionStartTime = useRef<number>(0)
+  const questionTimerKey = state.phase === 'quiz' ? state.currentIndex : state.phase
 
   useEffect(() => {
-    const existing = getSession(exam.id)
-    if (!existing) {
-      const session = startSession(exam.id)
-      setState({ phase: 'quiz', session, currentIndex: 0, selected: [] })
-      return
-    }
-    if (existing.completedAt) {
-      setState({ phase: 'complete', session: existing })
-      return
-    }
-    const answeredCount = getAnsweredCount(existing)
-    if (answeredCount === 0) {
-      setState({ phase: 'quiz', session: existing, currentIndex: 0, selected: [] })
-    } else {
-      setState({ phase: 'resume', session: existing })
-    }
-  }, [exam.id])
+    questionStartTime.current = Date.now()
+  }, [questionTimerKey])
 
   const startFresh = useCallback(() => {
     clearSession(exam.id)
@@ -81,7 +82,8 @@ export function QuizEngine({ exam, questions }: Props) {
       const q = questions[prev.currentIndex]
       const isCorrect = isAnswerCorrect(prev.selected, q.correctAnswers)
 
-      const timeSpentSeconds = Math.round((Date.now() - questionStartTime.current) / 1000)
+      const startedAt = questionStartTime.current || Date.now()
+      const timeSpentSeconds = Math.round((Date.now() - startedAt) / 1000)
 
       recordAnswer(exam.id, {
         questionId: q.id,

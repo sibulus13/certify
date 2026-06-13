@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createServerClient } from '@/lib/supabase-server'
+import { sql } from 'drizzle-orm'
+import { createDb } from '@/lib/db'
 
 const StatsBody = z.object({
   events: z.array(
@@ -26,8 +27,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const supabase = createServerClient()
-
   // Fan out events into per-option rows for upsert
   const rows = parsed.data.events.flatMap(({ questionId, examId, selectedOptions, isCorrect }) =>
     selectedOptions.map((optionId) => ({
@@ -38,9 +37,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }))
   )
 
-  const { error } = await supabase.rpc('upsert_question_stats', { events: rows as unknown as import('@/types/database').Json })
-
-  if (error) {
+  try {
+    await createDb().execute(sql`select upsert_question_stats(${JSON.stringify(rows)}::jsonb)`)
+  } catch {
     // Non-fatal: stats collection failure should not block the user
     return NextResponse.json(
       { error: 'Stats update failed', code: 'DB_ERROR' },
