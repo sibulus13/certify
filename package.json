@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "auth:secret": "tsx scripts/write-auth-secret.ts",
     "db:migrate": "tsx scripts/apply-neon-migrations.ts",
     "parse-exams": "tsx scripts/parse-exams.ts",
     "test": "vitest run",
