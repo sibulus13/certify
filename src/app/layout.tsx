@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: '%s | Certify',
   },
   description:
-    '23 full-length AWS Certified Cloud Practitioner (CLF-C02) practice exams with 1,500+ questions. ' +
+    '23 full-length AWS Certified Cloud Practitioner (CLF-C02) practice exams with 1,000+ questions. ' +
     'Track your progress, compete on the leaderboard, and study smarter.',
   keywords: [
     'AWS Cloud Practitioner',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     type: 'website',
     siteName: 'Certify',
     title: 'Certify — AWS Cloud Practitioner Practice Exams',
-    description: '23 practice exams, 1,500+ questions. Free to start.',
+    description: '23 practice exams, 1,000+ questions. Free to start.',
   },
   twitter: { card: 'summary' },
   robots: { index: true, follow: true },

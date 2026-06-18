@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'AWS Cloud Practitioner Practice Exams',
   description:
     'Free AWS Certified Cloud Practitioner (CLF-C02) practice exams. ' +
-    '23 full-length exams, 1,500+ questions, no sign-up required.',
+    '23 full-length exams, 1,000+ questions, no sign-up required.',
 }
 
 // JSON-LD for agent + search engine crawlers
