@@ -9,7 +9,7 @@ export type AwsTopic = {
 export const AWS_TOPICS: AwsTopic[] = [
   {
     name: 'EC2',
-    docsUrl: 'https://docs.aws.amazon.com/ec2/latest/userguide/',
+    docsUrl: 'https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/',
     keywords: /\bEC2\b|Elastic Compute|spot instance|on-demand|reserved instance|dedicated host/i,
   },
   {
@@ -29,7 +29,7 @@ export const AWS_TOPICS: AwsTopic[] = [
   },
   {
     name: 'RDS',
-    docsUrl: 'https://docs.aws.amazon.com/rds/latest/userguide/',
+    docsUrl: 'https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/',
     keywords: /\bRDS\b|Relational Database|Aurora|MySQL|PostgreSQL|Oracle|SQL Server/i,
   },
   {
@@ -39,7 +39,7 @@ export const AWS_TOPICS: AwsTopic[] = [
   },
   {
     name: 'CloudWatch',
-    docsUrl: 'https://docs.aws.amazon.com/cloudwatch/latest/monitoring/',
+    docsUrl: 'https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/',
     keywords: /CloudWatch|monitoring|metrics|alarms|logs/i,
   },
   {
@@ -49,7 +49,7 @@ export const AWS_TOPICS: AwsTopic[] = [
   },
   {
     name: 'CloudFront',
-    docsUrl: 'https://docs.aws.amazon.com/cloudfront/latest/developerguide/',
+    docsUrl: 'https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/',
     keywords: /CloudFront|CDN|content delivery|edge location/i,
   },
   {

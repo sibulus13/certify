@@ -64,8 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="flex-1">{children}</main>
 
         <footer className="border-t border-slate-800 px-6 py-8 mt-16">
-          <div className="mx-auto max-w-5xl flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600">
-            <span>Not affiliated with or endorsed by Amazon Web Services.</span>
+          <div className="mx-auto max-w-5xl flex flex-wrap items-center justify-end gap-4 text-xs text-slate-600">
             <a
               href="/legal/attribution"
               className="hover:text-slate-400 transition-colors underline underline-offset-2"

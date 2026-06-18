@@ -114,19 +114,6 @@ export default async function ExamPage({ params }: Props) {
             </ul>
           </div>
         )}
-
-        <div className="mt-12 text-xs text-slate-600">
-          Source:{' '}
-          <a
-            href="https://github.com/kananinirav/AWS-Certified-Cloud-Practitioner-Notes"
-            className="underline hover:text-slate-400 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            kananinirav/AWS-Certified-Cloud-Practitioner-Notes
-          </a>{' '}
-          (MIT) — not affiliated with Amazon Web Services.
-        </div>
       </div>
     </>
   )
