@@ -7,13 +7,23 @@
  * Stage 1: all routes open, trace ID only.
  * Stage 2: uncomment protectedPaths redirect.
  * Stage 3: uncomment proPaths redirect.
+ *
+ * BYPASS_AUTH=true (local-bypass-auth branch only) skips the Pro gate entirely
+ * and never invokes Auth.js, so no AUTH_SECRET/OAuth credentials are needed.
  */
 
 import { auth } from '@/auth'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export const proxy = auth(function proxy(request: NextRequest) {
+function bareProxy(request: NextRequest) {
+  const traceId = request.headers.get('x-trace-id') ?? crypto.randomUUID()
+  const response = NextResponse.next({ request: { headers: request.headers } })
+  response.headers.set('x-trace-id', traceId)
+  return response
+}
+
+const gatedProxy = auth(function proxy(request: NextRequest) {
   const traceId = request.headers.get('x-trace-id') ?? crypto.randomUUID()
 
   const { pathname } = request.nextUrl
@@ -30,6 +40,8 @@ export const proxy = auth(function proxy(request: NextRequest) {
   response.headers.set('x-trace-id', traceId)
   return response
 })
+
+export const proxy = process.env.BYPASS_AUTH === 'true' ? bareProxy : gatedProxy
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|public/).*)',],
