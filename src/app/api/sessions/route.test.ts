@@ -1,23 +1,21 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/auth', () => ({
-  auth: vi.fn(),
-}))
-
 vi.mock('@/lib/db', () => ({
   createDb: vi.fn(),
 }))
 
 import { POST, GET } from './route'
-import { auth } from '@/auth'
 import { createDb } from '@/lib/db'
 import { NextRequest } from 'next/server'
 
-const mockAuth = vi.mocked(auth)
 const mockCreateDb = vi.mocked(createDb)
 
+const ANON_ID = '11111111-2222-4333-8444-555555555555'
+
 const VALID_BODY = {
+  anonId: ANON_ID,
+  nickname: 'CloudNinja',
   examId: 'practice-exam-1',
   score: 40,
   questionCount: 50,
@@ -26,18 +24,18 @@ const VALID_BODY = {
 }
 
 function makePostDbMock(overrides?: { insertId?: string; countValue?: number }) {
+  const values = vi.fn().mockReturnValue({
+    returning: vi.fn().mockResolvedValue([{ id: overrides?.insertId ?? 'session-uuid-1' }]),
+  })
   return {
-    insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: overrides?.insertId ?? 'session-uuid-1' }]),
-      }),
-    }),
+    _values: values,
+    insert: vi.fn().mockReturnValue({ values }),
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ value: overrides?.countValue ?? 3 }]),
       }),
     }),
-  } as unknown as ReturnType<typeof createDb>
+  } as unknown as ReturnType<typeof createDb> & { _values: typeof values }
 }
 
 function makeGetDbMock(data: unknown[]) {
@@ -54,84 +52,72 @@ function makeGetDbMock(data: unknown[]) {
   } as unknown as ReturnType<typeof createDb>
 }
 
-describe('POST /api/sessions', () => {
-  beforeEach(() => {
-    vi.resetAllMocks()
+function postReq(body: unknown) {
+  return new NextRequest('http://localhost/api/sessions', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
   })
+}
 
-  it('returns 401 when unauthenticated', async () => {
-    mockAuth.mockResolvedValue(null)
+describe('POST /api/sessions (anonymous)', () => {
+  beforeEach(() => vi.resetAllMocks())
 
-    const req = new NextRequest('http://localhost/api/sessions', {
-      method: 'POST',
-      body: JSON.stringify(VALID_BODY),
-      headers: { 'Content-Type': 'application/json' },
-    })
-
-    const res = await POST(req)
-    expect(res.status).toBe(401)
-    const body = await res.json()
-    expect(body.code).toBe('UNAUTHORIZED')
-  })
-
-  it('returns 400 for invalid body', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } } as ReturnType<typeof auth> extends Promise<infer T> ? T : never)
-
-    const req = new NextRequest('http://localhost/api/sessions', {
-      method: 'POST',
-      body: JSON.stringify({ examId: '' }),
-      headers: { 'Content-Type': 'application/json' },
-    })
-
-    const res = await POST(req)
+  it('returns 400 when anonId is missing/invalid', async () => {
+    const res = await POST(postReq({ ...VALID_BODY, anonId: 'not-a-uuid' }))
     expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.code).toBe('VALIDATION_ERROR')
+    expect((await res.json()).code).toBe('VALIDATION_ERROR')
   })
 
-  it('returns 201 with id and rank on success', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1', name: 'Test', email: 'test@test.com' } } as ReturnType<typeof auth> extends Promise<infer T> ? T : never)
+  it('returns 400 when score exceeds questionCount', async () => {
+    mockCreateDb.mockReturnValue(makePostDbMock())
+    const res = await POST(postReq({ ...VALID_BODY, score: 60, questionCount: 50 }))
+    expect(res.status).toBe(400)
+  })
 
-    mockCreateDb.mockReturnValue(makePostDbMock({ insertId: 'session-uuid-1', countValue: 4 }))
+  it('returns 201 with id and rank on success, no auth required', async () => {
+    const db = makePostDbMock({ insertId: 'session-uuid-1', countValue: 4 })
+    mockCreateDb.mockReturnValue(db)
 
-    const req = new NextRequest('http://localhost/api/sessions', {
-      method: 'POST',
-      body: JSON.stringify(VALID_BODY),
-      headers: { 'Content-Type': 'application/json' },
-    })
-
-    const res = await POST(req)
+    const res = await POST(postReq(VALID_BODY))
     expect(res.status).toBe(201)
     const body = await res.json()
     expect(body.id).toBe('session-uuid-1')
-    expect(typeof body.rank).toBe('number')
+    expect(body.rank).toBe(5)
+    // persists anon id + nickname
+    expect((db as unknown as { _values: ReturnType<typeof vi.fn> })._values).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: ANON_ID, displayName: 'CloudNinja' })
+    )
+  })
+
+  it('accepts a missing nickname (stored as null)', async () => {
+    const db = makePostDbMock()
+    mockCreateDb.mockReturnValue(db)
+    const { nickname, ...noNick } = VALID_BODY
+    void nickname
+    const res = await POST(postReq(noNick))
+    expect(res.status).toBe(201)
+    expect((db as unknown as { _values: ReturnType<typeof vi.fn> })._values).toHaveBeenCalledWith(
+      expect.objectContaining({ displayName: null })
+    )
   })
 })
 
-describe('GET /api/sessions', () => {
-  beforeEach(() => {
-    vi.resetAllMocks()
+describe('GET /api/sessions (anonymous)', () => {
+  beforeEach(() => vi.resetAllMocks())
+
+  it('returns 400 when no anonId is provided', async () => {
+    const res = await GET(new NextRequest('http://localhost/api/sessions'))
+    expect(res.status).toBe(400)
   })
 
-  it('returns 401 when unauthenticated', async () => {
-    mockAuth.mockResolvedValue(null)
-
-    const req = new NextRequest('http://localhost/api/sessions')
-    const res = await GET(req)
-    expect(res.status).toBe(401)
-  })
-
-  it('returns 200 with sessions array when authenticated', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1', name: 'Test', email: 'test@test.com' } } as ReturnType<typeof auth> extends Promise<infer T> ? T : never)
-
+  it('returns 200 with sessions array for a given anonId', async () => {
     const mockData = [
-      { id: 'sess-1', examId: 'practice-exam-1', score: 40, questionCount: 50, timeSeconds: 1800, completedAt: new Date('2025-01-01T00:00:00Z') },
+      { id: 'sess-1', userId: ANON_ID, examId: 'practice-exam-1', score: 40, questionCount: 50, timeSeconds: 1800, completedAt: new Date('2025-01-01T00:00:00Z') },
     ]
-
     mockCreateDb.mockReturnValue(makeGetDbMock(mockData))
 
-    const req = new NextRequest('http://localhost/api/sessions')
-    const res = await GET(req)
+    const res = await GET(new NextRequest(`http://localhost/api/sessions?anonId=${ANON_ID}`))
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(Array.isArray(body)).toBe(true)

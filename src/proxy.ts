@@ -41,7 +41,12 @@ const gatedProxy = auth(function proxy(request: NextRequest) {
   return response
 })
 
-export const proxy = process.env.BYPASS_AUTH === 'true' ? bareProxy : gatedProxy
+// Pro tier is OFF by default — every exam is free (see docs/DECISIONS.md: open-all-free).
+// Re-instate the exam 6–23 paywall redirect by setting ENABLE_PRO_GATE=true.
+// Legacy BYPASS_AUTH=true still forces the open path. Default-open avoids a prod footgun
+// where a forgotten env var silently resurrects the paywall.
+const proGateEnabled = process.env.ENABLE_PRO_GATE === 'true' && process.env.BYPASS_AUTH !== 'true'
+export const proxy = proGateEnabled ? gatedProxy : bareProxy
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|public/).*)',],

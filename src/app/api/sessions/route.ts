@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { and, count, desc, eq, gt, lt, or } from 'drizzle-orm'
-import { auth } from '@/auth'
 import { createDb } from '@/lib/db'
 import { quizSessions } from '@/lib/db/schema'
 import type { Json } from '@/types/database'
 
+// Anonymous, no-login leaderboard identity: a client-minted UUID + optional nickname.
+// Replaces the previous OAuth requirement. See docs/DECISIONS.md (cookie-uuid-identity).
 const SessionBody = z.object({
+  anonId: z.string().uuid(),
+  nickname: z.string().trim().min(1).max(40).nullish(),
   examId: z.string().min(1),
   score: z.number().int().min(0),
   questionCount: z.number().int().positive(),
@@ -16,14 +19,6 @@ const SessionBody = z.object({
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const traceId = request.headers.get('x-trace-id') ?? crypto.randomUUID()
-  const session = await auth()
-
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: 'Authentication required', code: 'UNAUTHORIZED' },
-      { status: 401, headers: { 'x-trace-id': traceId } }
-    )
-  }
 
   const body = await request.json().catch(() => null)
   const parsed = SessionBody.safeParse(body)
@@ -35,14 +30,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const { examId, score, questionCount, timeSeconds, answers } = parsed.data
+  const { anonId, nickname, examId, score, questionCount, timeSeconds, answers } = parsed.data
+
+  // Guard against a nonsensical score (more correct than questions).
+  if (score > questionCount) {
+    return NextResponse.json(
+      { error: 'score exceeds questionCount', code: 'VALIDATION_ERROR' },
+      { status: 400, headers: { 'x-trace-id': traceId } }
+    )
+  }
+
   const db = createDb()
 
   try {
     const [inserted] = await db
       .insert(quizSessions)
       .values({
-        userId: session.user.id,
+        userId: anonId,
+        displayName: nickname ?? null,
         examId,
         score,
         questionCount,
@@ -78,12 +83,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const traceId = request.headers.get('x-trace-id') ?? crypto.randomUUID()
-  const session = await auth()
 
-  if (!session?.user?.id) {
+  // Return a single visitor's attempts by anon id (from ?anonId= or the cookie).
+  const anonId =
+    request.nextUrl.searchParams.get('anonId') ?? request.cookies.get('certify_uid')?.value ?? null
+
+  if (!anonId) {
     return NextResponse.json(
-      { error: 'Authentication required', code: 'UNAUTHORIZED' },
-      { status: 401, headers: { 'x-trace-id': traceId } }
+      { error: 'anonId required', code: 'BAD_REQUEST' },
+      { status: 400, headers: { 'x-trace-id': traceId } }
     )
   }
 
@@ -91,7 +99,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const data = await createDb()
       .select()
       .from(quizSessions)
-      .where(eq(quizSessions.userId, session.user.id))
+      .where(eq(quizSessions.userId, anonId))
       .orderBy(desc(quizSessions.completedAt))
       .limit(50)
 

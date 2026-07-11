@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 type LeaderboardEntry = {
   rank: number
   userId: string
+  displayName: string | null
   score: number
   questionCount: number
   timeSeconds: number
@@ -24,6 +25,7 @@ async function getLeaderboard(examId: string): Promise<LeaderboardEntry[]> {
     const data = await createDb()
       .select({
         userId: quizSessions.userId,
+        displayName: quizSessions.displayName,
         score: quizSessions.score,
         questionCount: quizSessions.questionCount,
         timeSeconds: quizSessions.timeSeconds,
@@ -37,6 +39,7 @@ async function getLeaderboard(examId: string): Promise<LeaderboardEntry[]> {
     return data.map((row, i) => ({
       rank: i + 1,
       userId: row.userId,
+      displayName: row.displayName,
       score: row.score,
       questionCount: row.questionCount,
       timeSeconds: row.timeSeconds,
@@ -106,6 +109,7 @@ export default async function LeaderboardPage({
             <thead>
               <tr className="border-b border-slate-800 text-slate-500 text-left">
                 <th className="px-6 py-3 w-12">#</th>
+                <th className="px-6 py-3">Player</th>
                 <th className="px-6 py-3">Score</th>
                 <th className="px-6 py-3 hidden sm:table-cell">Time</th>
                 <th className="px-6 py-3 hidden md:table-cell">Date</th>
@@ -118,6 +122,9 @@ export default async function LeaderboardPage({
                   className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors"
                 >
                   <td className="px-6 py-3 text-slate-500">{entry.rank}</td>
+                  <td className="px-6 py-3 text-slate-300">
+                    {entry.displayName ?? <span className="text-slate-600 italic">Anonymous</span>}
+                  </td>
                   <td className="px-6 py-3 font-medium text-white">
                     {Math.round((entry.score / entry.questionCount) * 100)}%
                     <span className="text-slate-500 text-xs ml-1">

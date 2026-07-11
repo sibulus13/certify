@@ -37,7 +37,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 const SOURCE_DIR = join(ROOT, 'data', 'source', 'practice-exams')
 const OUTPUT_PATH = join(ROOT, 'public', 'data', 'questions.json')
-const FREE_EXAM_COUNT = 5
+// All exams are free (open study tool, no paywall). Set to a lower number to
+// re-introduce a Pro tier gated at exam N+1. See docs/DECISIONS.md (open-all-free).
+const FREE_EXAM_COUNT = 23
 const MIN_QUESTIONS_PER_EXAM = 40  // exam-12 has 42 in source data
 
 function parseQuestionBlock(block: string, examNumber: number, sequentialIndex: number): Question | null {

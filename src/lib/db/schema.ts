@@ -16,7 +16,9 @@ export const quizSessions = pgTable(
   'quiz_sessions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // Anonymous client UUID (cookie/localStorage), not an OAuth id — see docs/DECISIONS.md.
     userId: text('user_id').notNull(),
+    displayName: text('display_name'),
     examId: text('exam_id').notNull(),
     score: integer('score').notNull(),
     questionCount: integer('question_count').notNull(),

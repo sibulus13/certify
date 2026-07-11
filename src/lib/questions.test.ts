@@ -34,10 +34,9 @@ describe('questions.json data integrity', () => {
     expect(new Date(data.generatedAt).getTime()).not.toBeNaN()
   })
 
-  it('each exam has the correct isFree flag (exams 1-5 free)', () => {
+  it('every exam is free (open study tool, no paywall)', () => {
     for (const exam of data.exams) {
-      const expected = exam.number <= 5
-      expect(exam.isFree).toBe(expected)
+      expect(exam.isFree).toBe(true)
     }
   })
 

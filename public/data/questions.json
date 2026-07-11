@@ -40,126 +40,126 @@
       "number": 6,
       "title": "Practice Exam 6",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-7",
       "number": 7,
       "title": "Practice Exam 7",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-8",
       "number": 8,
       "title": "Practice Exam 8",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-9",
       "number": 9,
       "title": "Practice Exam 9",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-10",
       "number": 10,
       "title": "Practice Exam 10",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-11",
       "number": 11,
       "title": "Practice Exam 11",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-12",
       "number": 12,
       "title": "Practice Exam 12",
       "questionCount": 42,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-13",
       "number": 13,
       "title": "Practice Exam 13",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-14",
       "number": 14,
       "title": "Practice Exam 14",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-15",
       "number": 15,
       "title": "Practice Exam 15",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-16",
       "number": 16,
       "title": "Practice Exam 16",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-17",
       "number": 17,
       "title": "Practice Exam 17",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-18",
       "number": 18,
       "title": "Practice Exam 18",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-19",
       "number": 19,
       "title": "Practice Exam 19",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-20",
       "number": 20,
       "title": "Practice Exam 20",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-21",
       "number": 21,
       "title": "Practice Exam 21",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-22",
       "number": 22,
       "title": "Practice Exam 22",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     },
     {
       "id": "practice-exam-23",
       "number": 23,
       "title": "Practice Exam 23",
       "questionCount": 50,
-      "isFree": false
+      "isFree": true
     }
   ],
   "questions": [
@@ -36774,7 +36774,7 @@
       "source": "kananinirav/AWS-Certified-Cloud-Practitioner-Notes"
     }
   ],
-  "generatedAt": "2026-06-12T05:01:16.306Z",
+  "generatedAt": "2026-07-11T23:17:03.936Z",
   "totalQuestions": 1142,
   "source": "https://github.com/kananinirav/AWS-Certified-Cloud-Practitioner-Notes"
 }

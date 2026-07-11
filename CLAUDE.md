@@ -4,6 +4,8 @@
 
 Extends global CLAUDE.md. Global Autonomous Execution Contract applies in full.
 
+`deploymentTier: pre-traffic` — deployed (certify-swart.vercel.app) but no real users yet; pre-dogfood. Per global governance, may modify straight to prod: skip the human-approval-before-code blocker, still gate on `build` + `test` green. Promote to `live` once it has real users.
+
 ## Stage map
 
 | Stage | Status | Gate |

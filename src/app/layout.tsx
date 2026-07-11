@@ -1,10 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
 import Link from 'next/link'
-import { Suspense } from 'react'
-import { AuthButton } from '@/components/AuthButton'
-import { AdminProToggle } from '@/components/AdminProToggle'
-import { Providers } from '@/components/Providers'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
@@ -45,7 +41,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${geist.variable} h-full`}>
       <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 antialiased">
-        <Providers>
         <header className="border-b border-slate-800 px-6 py-4">
           <div className="mx-auto max-w-5xl flex items-center justify-between">
             <Link href="/" className="text-lg font-semibold tracking-tight text-white hover:text-sky-400 transition-colors">
@@ -53,10 +48,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <nav className="flex items-center gap-4 sm:gap-6 text-sm text-slate-400">
               <Link href="/" className="hover:text-white transition-colors">Exams</Link>
+              <Link href="/progress" className="hover:text-white transition-colors">Progress</Link>
               <Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link>
-              <Suspense fallback={<div className="w-16 h-7 rounded-lg bg-slate-800 animate-pulse" />}>
-                <AuthButton />
-              </Suspense>
             </nav>
           </div>
         </header>
@@ -73,9 +66,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </a>
           </div>
         </footer>
-
-        <AdminProToggle />
-        </Providers>
       </body>
     </html>
   )
