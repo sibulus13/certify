@@ -9,5 +9,8 @@ export function createDb() {
     throw new Error('DATABASE_URL is not configured')
   }
 
-  return drizzle(neon(databaseUrl), { schema })
+  // The neon-http driver runs queries over fetch(), which Next/Vercel caches by
+  // default (keyed by the SQL) and persists across deploys — that made the
+  // leaderboard serve stale/deleted scores. DB reads must always be live.
+  return drizzle(neon(databaseUrl, { fetchOptions: { cache: 'no-store' } }), { schema })
 }
