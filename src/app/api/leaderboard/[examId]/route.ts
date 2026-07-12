@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { asc, desc, eq } from 'drizzle-orm'
 import { createDb } from '@/lib/db'
 import { quizSessions } from '@/lib/db/schema'
+import { displayNameFor } from '@/lib/display-name'
 
 export async function GET(
   request: NextRequest,
@@ -18,9 +19,11 @@ export async function GET(
       .orderBy(desc(quizSessions.score), asc(quizSessions.timeSeconds))
       .limit(20)
 
+    // Return the resolved display name only — never leak the raw identity token
+    // (the anon UUID / future SSO id) to other visitors.
     const leaderboard = data.map((row, i) => ({
       rank: i + 1,
-      userId: row.userId,
+      displayName: displayNameFor(row.userId, row.displayName),
       score: row.score,
       questionCount: row.questionCount,
       timeSeconds: row.timeSeconds,

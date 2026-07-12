@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { asc, desc, eq } from 'drizzle-orm'
 import { createDb } from '@/lib/db'
 import { quizSessions } from '@/lib/db/schema'
 import { getAllExams } from '@/lib/questions'
+import { displayNameFor } from '@/lib/display-name'
 
 export const metadata: Metadata = {
   title: 'Leaderboard',
@@ -73,6 +75,8 @@ export default async function LeaderboardPage({
   const activeExam = exams.find((e) => e.id === activeExamId) ?? exams[0]
 
   const entries = await getLeaderboard(activeExamId)
+  // Identify the current visitor's rows so we can highlight "You" on the board.
+  const myUid = (await cookies()).get('certify_uid')?.value ?? null
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
@@ -122,14 +126,24 @@ export default async function LeaderboardPage({
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
+              {entries.map((entry) => {
+                const isMe = myUid !== null && entry.userId === myUid
+                return (
                 <tr
                   key={`${entry.userId}-${entry.completedAt}`}
-                  className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors"
+                  className={[
+                    'border-b border-slate-800/50 last:border-0 transition-colors',
+                    isMe ? 'bg-sky-500/10 hover:bg-sky-500/15' : 'hover:bg-slate-800/30',
+                  ].join(' ')}
                 >
                   <td className="px-6 py-3 text-slate-500">{entry.rank}</td>
                   <td className="px-6 py-3 text-slate-300">
-                    {entry.displayName ?? <span className="text-slate-600 italic">Anonymous</span>}
+                    {displayNameFor(entry.userId, entry.displayName)}
+                    {isMe && (
+                      <span className="ml-2 rounded-full bg-sky-500/20 px-2 py-0.5 text-xs font-medium text-sky-300 ring-1 ring-sky-500/30">
+                        You
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-3 font-medium text-white">
                     {Math.round((entry.score / entry.questionCount) * 100)}%
@@ -144,7 +158,8 @@ export default async function LeaderboardPage({
                     {new Date(entry.completedAt).toLocaleDateString()}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         )}

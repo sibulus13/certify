@@ -12,8 +12,8 @@ import { NextRequest } from 'next/server'
 const mockCreateDb = vi.mocked(createDb)
 
 const MOCK_SESSIONS = [
-  { id: 'a', userId: 'u1', score: 48, questionCount: 50, timeSeconds: 900, completedAt: new Date('2025-01-02T00:00:00Z') },
-  { id: 'b', userId: 'u2', score: 45, questionCount: 50, timeSeconds: 1200, completedAt: new Date('2025-01-01T00:00:00Z') },
+  { id: 'a', userId: 'u1', displayName: 'Ada', score: 48, questionCount: 50, timeSeconds: 900, completedAt: new Date('2025-01-02T00:00:00Z') },
+  { id: 'b', userId: 'u2', displayName: null, score: 45, questionCount: 50, timeSeconds: 1200, completedAt: new Date('2025-01-01T00:00:00Z') },
 ]
 
 function mockLeaderboard(data: unknown[] | Promise<unknown[]>) {
@@ -47,6 +47,20 @@ describe('GET /api/leaderboard/[examId]', () => {
     expect(body[0].rank).toBe(1)
     expect(body[1].rank).toBe(2)
     expect(body[0].score).toBe(48)
+  })
+
+  it('returns resolved display names and never leaks the raw identity token', async () => {
+    mockLeaderboard(MOCK_SESSIONS)
+
+    const req = new NextRequest('http://localhost/api/leaderboard/practice-exam-1')
+    const res = await GET(req, { params: Promise.resolve({ examId: 'practice-exam-1' }) })
+    const body = await res.json()
+
+    // Chosen nickname is shown verbatim; a blank one gets a derived handle.
+    expect(body[0].displayName).toBe('Ada')
+    expect(body[1].displayName).toMatch(/^[A-Za-z]+-\d{3}$/)
+    // The anon UUID / SSO id must not be exposed to other visitors.
+    expect(body[0]).not.toHaveProperty('userId')
   })
 
   it('returns empty array when no scores', async () => {

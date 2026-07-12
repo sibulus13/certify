@@ -6,6 +6,7 @@ import type { Exam, Question, QuizSession } from '@/lib/types'
 import { analyzeWeakAreas } from '@/lib/study-plan'
 import { recordAttempt } from '@/lib/history'
 import { getAnonId, getNickname, setNickname } from '@/lib/identity'
+import { displayNameFor, handleFromUid } from '@/lib/display-name'
 
 type Props = {
   exam: Exam
@@ -25,6 +26,8 @@ export function ScoreScreen({ exam, questions, session, onRetry }: Props) {
 
   const [rank, setRank] = useState<number | null>(null)
   const [name, setName] = useState('')
+  const [postedAs, setPostedAs] = useState('')
+  const [autoHandle, setAutoHandle] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const savedOnce = useRef(false)
 
@@ -46,6 +49,8 @@ export function ScoreScreen({ exam, questions, session, onRetry }: Props) {
     })
 
     setName(getNickname() ?? '')
+    // Preview the handle this browser posts under when no nickname is set.
+    setAutoHandle(handleFromUid(getAnonId()))
 
     const events = questions.flatMap((q) => {
       const ans = session.answers[q.id]
@@ -68,13 +73,14 @@ export function ScoreScreen({ exam, questions, session, onRetry }: Props) {
 
   async function submitToLeaderboard() {
     setSubmitting(true)
+    const anonId = getAnonId()
     setNickname(name)
     try {
       const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          anonId: getAnonId(),
+          anonId,
           nickname: name.trim() || null,
           examId: exam.id,
           score: correct,
@@ -84,7 +90,10 @@ export function ScoreScreen({ exam, questions, session, onRetry }: Props) {
         }),
       })
       const data: { rank?: number } | null = res.ok ? await res.json() : null
-      if (data?.rank) setRank(data.rank)
+      if (data?.rank) {
+        setRank(data.rank)
+        setPostedAs(displayNameFor(anonId, name))
+      }
     } catch {
       // Leaderboard is best-effort; local history already saved.
     } finally {
@@ -172,7 +181,8 @@ export function ScoreScreen({ exam, questions, session, onRetry }: Props) {
       <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 mb-10">
         {rank !== null ? (
           <p className="text-sm text-slate-300">
-            Posted to the leaderboard — rank{' '}
+            Posted as{' '}
+            <span className="text-white font-semibold">{postedAs}</span> — rank{' '}
             <span className="text-sky-400 font-semibold">#{rank}</span>.{' '}
             <a href={`/leaderboard?exam=${exam.id}`} className="text-sky-400 underline hover:text-sky-300">
               View leaderboard
@@ -190,7 +200,7 @@ export function ScoreScreen({ exam, questions, session, onRetry }: Props) {
                 value={name}
                 maxLength={40}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Pick a nickname"
+                placeholder={autoHandle ? `Leave blank to post as ${autoHandle}` : 'Pick a nickname'}
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-sky-500 focus:outline-none"
               />
             </div>
