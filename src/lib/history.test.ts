@@ -57,4 +57,42 @@ describe('history store', () => {
     localStorage.setItem('certify:history', '{ not json')
     expect(getHistory()).toEqual([])
   })
+
+  it('is idempotent by sourceKey — re-recording the same attempt is a no-op', () => {
+    const withKey = { ...base, sourceKey: 'practice-exam-1:2026-07-11T00:00:00Z' }
+    const first = recordAttempt(withKey)
+    const second = recordAttempt(withKey) // e.g. a remount re-firing the effect
+    expect(second.id).toBe(first.id)
+    expect(getHistory()).toHaveLength(1)
+  })
+
+  it('keeps distinct attempts that share a score but have different sourceKeys', () => {
+    recordAttempt({ ...base, sourceKey: 'practice-exam-1:2026-07-11T09:00:00Z' })
+    recordAttempt({ ...base, sourceKey: 'practice-exam-1:2026-07-11T10:00:00Z' })
+    expect(getHistory()).toHaveLength(2)
+  })
+
+  it('heals legacy duplicate records recorded within seconds of each other', () => {
+    // Simulate the pre-fix remount bug: two identical records, no sourceKey,
+    // completedAt milliseconds apart.
+    localStorage.setItem(
+      'certify:history',
+      JSON.stringify([
+        { ...base, id: 'a', completedAt: '2026-07-11T00:00:00.100Z' },
+        { ...base, id: 'b', completedAt: '2026-07-11T00:00:00.740Z' },
+      ])
+    )
+    expect(getHistory()).toHaveLength(1)
+  })
+
+  it('does NOT merge legacy attempts with the same score finished far apart', () => {
+    localStorage.setItem(
+      'certify:history',
+      JSON.stringify([
+        { ...base, id: 'a', completedAt: '2026-07-11T00:00:00Z' },
+        { ...base, id: 'b', completedAt: '2026-07-11T09:30:00Z' },
+      ])
+    )
+    expect(getHistory()).toHaveLength(2)
+  })
 })

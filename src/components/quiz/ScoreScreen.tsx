@@ -45,6 +45,9 @@ export function ScoreScreen({ exam, questions, session, onRetry }: Props) {
       total,
       timeSeconds: totalTime,
       completedAt: new Date().toISOString(),
+      // Stable per-attempt identity — dedups if this effect ever re-fires on a
+      // remount. `startedAt` is fixed when the exam begins and resets on retry.
+      sourceKey: `${exam.id}:${session.startedAt}`,
       weakTopics: weakAreas.map((w) => ({ topic: w.topic, missed: w.missed })),
     })
 
