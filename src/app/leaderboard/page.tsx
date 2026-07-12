@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   description: 'Top scores across all AWS Cloud Practitioner practice exams.',
 }
 
+// Always read live scores — the board must reflect new submissions immediately,
+// not a build-time or cached snapshot.
+export const dynamic = 'force-dynamic'
+
 type LeaderboardEntry = {
   rank: number
   userId: string
