@@ -10,9 +10,11 @@ export const metadata: Metadata = {
   description: 'Top scores across all AWS Cloud Practitioner practice exams.',
 }
 
-// Always read live scores — the board must reflect new submissions immediately,
-// not a build-time or cached snapshot.
+// Always read live scores — the board must reflect new submissions immediately.
+// The Neon HTTP driver queries via fetch(), which Next/Vercel would otherwise
+// cache (and the Data Cache persists across deploys); force-no-store defeats that.
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 type LeaderboardEntry = {
   rank: number
