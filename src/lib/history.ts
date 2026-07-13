@@ -30,21 +30,28 @@ export type AttemptRecord = {
 const HISTORY_KEY = 'certify:history'
 const MAX_RECORDS = 500 // bound localStorage growth; oldest dropped first
 
-// Window within which two identical-scoring records are treated as the SAME
-// attempt double-recorded (the remount bug), not two real attempts — you can't
-// finish two exams this close together.
-const LEGACY_DUP_WINDOW_MS = 5000
+/**
+ * Content signature of a legacy record (one written before `sourceKey`). Two
+ * records with the same signature are the same completed attempt recorded more
+ * than once — `completedAt` is deliberately excluded because the old remount/
+ * revisit bug stamped a fresh timestamp on each re-record, so the copies differ
+ * only by `id` and `completedAt`. A genuinely distinct attempt would differ in
+ * at least one score field (you never answer in the exact same total seconds).
+ */
+function legacySignature(r: AttemptRecord): string {
+  return JSON.stringify([r.examId, r.pct, r.correct, r.total, r.timeSeconds, r.weakTopics])
+}
 
 /**
- * Removes duplicate attempts. New records dedup on their stable `sourceKey`.
- * Legacy records (written before `sourceKey` existed) can't carry that key, so
- * they're collapsed only when every score field matches AND they completed
- * within a few seconds of each other — the exact signature of the old
- * remount double-record. Genuinely distinct attempts are always preserved:
- * they either have different `sourceKey`s or finished seconds/minutes apart.
+ * Removes duplicate attempts. New records dedup on their stable `sourceKey`, so
+ * real attempts that happen to share a score always survive (their `sourceKey`s
+ * differ). Legacy records can't carry that key, so they're collapsed by content
+ * signature regardless of time gap — that heals the duplicates the old remount
+ * bug left in place even when the copies were recorded hours apart.
  */
 function dedupe(records: AttemptRecord[]): AttemptRecord[] {
   const seenSourceKeys = new Set<string>()
+  const seenLegacySigs = new Set<string>()
   const out: AttemptRecord[] = []
   for (const r of records) {
     if (r.sourceKey) {
@@ -53,17 +60,10 @@ function dedupe(records: AttemptRecord[]): AttemptRecord[] {
       out.push(r)
       continue
     }
-    const isLegacyDup = out.some(
-      (o) =>
-        !o.sourceKey &&
-        o.examId === r.examId &&
-        o.pct === r.pct &&
-        o.correct === r.correct &&
-        o.total === r.total &&
-        o.timeSeconds === r.timeSeconds &&
-        Math.abs(Date.parse(o.completedAt) - Date.parse(r.completedAt)) < LEGACY_DUP_WINDOW_MS
-    )
-    if (!isLegacyDup) out.push(r)
+    const sig = legacySignature(r)
+    if (seenLegacySigs.has(sig)) continue
+    seenLegacySigs.add(sig)
+    out.push(r)
   }
   return out
 }

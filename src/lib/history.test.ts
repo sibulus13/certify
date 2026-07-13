@@ -72,25 +72,27 @@ describe('history store', () => {
     expect(getHistory()).toHaveLength(2)
   })
 
-  it('heals legacy duplicate records recorded within seconds of each other', () => {
-    // Simulate the pre-fix remount bug: two identical records, no sourceKey,
-    // completedAt milliseconds apart.
+  it('heals legacy duplicates with identical scores regardless of the time gap', () => {
+    // The pre-fix remount/revisit bug re-recorded the same finished attempt with
+    // a fresh timestamp — copies differ only by id + completedAt, sometimes hours
+    // apart. All such copies collapse to one.
     localStorage.setItem(
       'certify:history',
       JSON.stringify([
         { ...base, id: 'a', completedAt: '2026-07-11T00:00:00.100Z' },
         { ...base, id: 'b', completedAt: '2026-07-11T00:00:00.740Z' },
+        { ...base, id: 'c', completedAt: '2026-07-11T09:30:00Z' },
       ])
     )
     expect(getHistory()).toHaveLength(1)
   })
 
-  it('does NOT merge legacy attempts with the same score finished far apart', () => {
+  it('keeps legacy attempts whose scores actually differ', () => {
     localStorage.setItem(
       'certify:history',
       JSON.stringify([
-        { ...base, id: 'a', completedAt: '2026-07-11T00:00:00Z' },
-        { ...base, id: 'b', completedAt: '2026-07-11T09:30:00Z' },
+        { ...base, id: 'a', pct: 80, correct: 40, timeSeconds: 1200 },
+        { ...base, id: 'b', pct: 88, correct: 44, timeSeconds: 1010 },
       ])
     )
     expect(getHistory()).toHaveLength(2)
